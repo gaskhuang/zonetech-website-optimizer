@@ -1,0 +1,67 @@
+name: 🏭 每日網站優化 Loop
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  optimize-loop:
+    name: 🔧 優化 Loop
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📥 Install deps
+        run: pip install pyyaml requests
+
+      - name: 📊 Step 1 — 開 Issues
+        id: parse
+        run: |
+          python scripts/optimize-loop.py 2>&1 | tee /tmp/opt_step1.log
+          COUNT=$(python3 -c "import json; d=json.load(open('/tmp/optimizer_issues.json')); print(len(d.get('issues',[])))" 2>/dev/null || echo 0)
+          echo "issues=$COUNT" >> $GITHUB_OUTPUT
+
+      - name: 🔧 Step 2 — Worker→Picky→Advisor
+        if: steps.parse.outputs.issues != '0'
+        run: python scripts/worker_picky_advisor_loop.py 2>&1 | tee /tmp/opt_step2.log
+
+      - name: 🚀 Step 3 — 上線
+        if: success()
+        run: python scripts/deploy.py 2>&1 | tee /tmp/opt_step3.log || echo "⚠️ No deploy needed"
+
+      - name: 📋 彙總報告
+        if: always()
+        run: |
+          echo "## 🏭 每日優化 Loop 結果" > /tmp/report.md
+          echo "" >> /tmp/report.md
+          echo '### Step 1: 解析報告' >> /tmp/report.md
+          echo '```' >> /tmp/report.md
+          cat /tmp/opt_step1.log 2>/dev/null || echo "(none)" >> /tmp/report.md
+          echo '```' >> /tmp/report.md
+          echo "" >> /tmp/report.md
+          echo '### Step 2: Worker→Picky→Advisor' >> /tmp/report.md
+          echo '```' >> /tmp/report.md
+          cat /tmp/opt_step2.log 2>/dev/null || echo "(none)" >> /tmp/report.md
+          echo '```' >> /tmp/report.md
+          echo "" >> /tmp/report.md
+          echo '### 通過狀態' >> /tmp/report.md
+          python3 -c "
+import json
+d = json.load(open('/tmp/optimizer_daily_result.json'))
+for r in d.get('results', []):
+    s = '✅' if r.get('passed') else '⚠️'
+    print(f'- {s} #{r[\"issue\"]} | {r.get(\"best_worker\",\"?\")} | {r.get(\"best_score\",0)}/100')
+print(f'總計: {d.get(\"passed\",0)}/{d.get(\"total_issues\",0)} 通過')
+" 2>/dev/null >> /tmp/report.md || echo "(no results)" >> /tmp/report.md
+          cat /tmp/report.md

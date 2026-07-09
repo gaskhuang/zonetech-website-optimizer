@@ -1,0 +1,46 @@
+# 蓋斯克網站優化 Loop 設定
+
+# Cron 觸發
+cron:
+  tracking_job_id: "719a74022e86"  # zonetech-website-tracking
+  run_after: "06:00"               # 追蹤完成後觸發
+
+# Worker 模型 (7 個平行)
+workers:
+  - name: "deepseek-v4-pro"
+    model: "deepseek/deepseek-v4-pro"
+    provider: "gmi"
+  - name: "chatgpt-5.5"
+    model: "openai/chatgpt-5.5"
+    provider: "openai"
+  - name: "kimi-k2.7-code"
+    model: "moonshotai/kimi-k2.7-code"
+    provider: "kimi-coding"
+  - name: "qwen3.7-max"
+    model: "qwen/qwen3.7-max"
+    provider: "qwen"
+  - name: "mimo-v2.5-pro"
+    model: "xiaomi/mimo-v2.5-pro"
+    provider: "xiaomi"
+  - name: "minimax-m3"
+    model: "minimax/minimax-m3"
+    provider: "minimax"
+  - name: "grok-4.5"
+    model: "x-ai/grok-4.5"
+    provider: "xai"
+
+# 評分閾值
+scoring:
+  pass_threshold: 85
+  max_workers: 7
+  review_dimensions:
+    - "SEO 正確性"
+    - "程式碼品質"
+    - "效能影響"
+    - "安全性"
+    - "與網站風格一致"
+
+# 審核
+advisor:
+  model: "anthropic/claude-fable-5"
+  provider: "anthropic"
