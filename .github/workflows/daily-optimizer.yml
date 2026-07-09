@@ -2,7 +2,7 @@ name: 🏭 每日網站優化 Loop
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "30 2 * * *"
   workflow_dispatch:
     inputs:
       trigger_source:
