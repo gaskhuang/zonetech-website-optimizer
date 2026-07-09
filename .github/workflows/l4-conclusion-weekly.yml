@@ -1,0 +1,33 @@
+name: 🧠 L4 Hill Climbing — Conclusion 週報
+
+on:
+  schedule:
+    - cron: "0 22 * * 0"   # 每週日 22:00
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  conclusion:
+    name: 🧠 Conclusion 分析
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📥 Install deps
+        run: pip install pyyaml
+
+      - name: 🧠 L4 — Hill Climbing Loop
+        run: python scripts/conclusion_l4.py 2>&1 | tee /tmp/conclusion.log
+
+      - name: 📋 彙總
+        if: always()
+        run: cat /tmp/conclusion.log
