@@ -91,9 +91,9 @@
 
 | 時間 | 事件 | 說明 |
 |------|------|------|
-| 06:00 | zonetech-website-tracking | 產出每日 SEO/流量報告 |
-| 06:30 | website-optimizer cron | 解析報告 → 開 GitHub Issues |
-| 07:00 | GitHub Actions (daily-optimizer) | Worker→Picky→Advisor 循環 |
+| 01:00 | zonetech-website-tracking | 產出每日 SEO/流量報告 |
+| 01:30 | website-optimizer cron | 解析報告 → 開 GitHub Issues |
+| 03:00 | GitHub Actions (daily-optimizer) | Worker→Picky→Advisor 循環 |
 | 22:00 (每週日) | Conclusion cron | L4 Hill Climbing 分析 |
 
 ## Repo
