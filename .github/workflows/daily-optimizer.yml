@@ -25,15 +25,13 @@ jobs:
       - name: 📥 Install deps
         run: pip install pyyaml requests
 
-      - name: 📊 Step 1 — 開 Issues
+      - name: 📊 Step 1 — 開 Issues（如有報告）
         id: parse
+        continue-on-error: true
         run: |
-          python scripts/optimize-loop.py 2>&1 | tee /tmp/opt_step1.log
-          python3 -c 'import json; d=json.load(open("/tmp/optimizer_issues.json")); print(len(d.get("issues",[])))' > /tmp/issue_count.txt 2>/dev/null || echo 0 > /tmp/issue_count.txt
-          echo "issues=$(cat /tmp/issue_count.txt)" >> $GITHUB_OUTPUT
+          python scripts/optimize-loop.py 2>&1 | tee /tmp/opt_step1.log || echo "No report available"
 
-      - name: 🔧 Step 2 — Worker→Picky→Advisor
-        if: steps.parse.outputs.issues != '0'
+      - name: 🔧 Step 2 — Worker→Picky→Advisor（掃既有 Issues）
         run: python scripts/worker_picky_advisor_loop.py 2>&1 | tee /tmp/opt_step2.log
 
       - name: 🚀 Step 3 — 上線
