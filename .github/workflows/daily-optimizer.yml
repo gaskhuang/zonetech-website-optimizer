@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "0 3 * * *"
   workflow_dispatch:
+    inputs:
+      trigger_source:
+        description: "Where this run was triggered from"
+        default: "cron"
+        type: string
 
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
