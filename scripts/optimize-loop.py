@@ -4,34 +4,51 @@
 
 流程：
 1. 讀取 zonetech-website-tracking 最新報告
-2. 解析優化項目 → 開 GitHub Issues
-3. 每個 Issue：Worker 修 → Picky 評分 → 未過就加 Worker → Advisor 審核 → 上線
+2. 解析優化項目（隱憂/保養/出口轉換/確認項目 → 全納入）
+3. 開 GitHub Issues
 """
 
 import json
 import os
+import re
 import subprocess
-import sys
-import time
 from datetime import datetime
 from pathlib import Path
 
-CONFIG_PATH = Path(__file__).parent.parent / "config" / "settings.yaml"
 REPORT_DIR = Path(os.environ.get("HOME", "/tmp")) / ".hermes" / "cron" / "output"
 
-# ─── 1. 解析追蹤報告 → 提取優化項目 ───
+# 報告區段關鍵字
+SECTION_MARKERS = {
+    "優化項目": "優化",
+    "行動車道": "優化",
+    "保養": "維護",
+    "加速": "優化",
+    "出口": "轉換",
+    "轉換": "轉換",
+    "風險": "風險",
+    "隱憂": "風險",
+    "確認": "待確認",
+    "觀察": "待確認",
+    "急修": "急修",
+}
+
+
+def detect_section(line):
+    """偵測當前是哪個區段"""
+    for kw, cat in SECTION_MARKERS.items():
+        if kw in line:
+            return cat
+    return None
+
+
 def parse_optimization_items():
     """
     從 zonetech-website-tracking 最新報告提取優化項目
-    回傳 list of dict: {title, description, category, urgency}
+    涵蓋：隱憂、保養、出口轉換、待確認項目 → 全部開 Issue
     """
-    # 找最新報告
     reports = sorted(REPORT_DIR.glob("*website*tracking*"), reverse=True)
     if not reports:
-        print("⚠️ 找不到 zonetech-website-tracking 報告")
-        # Fallback: 從今天 cron output 找
         reports = sorted(REPORT_DIR.glob("*"), reverse=True)
-
     if not reports:
         print("❌ 無報告可解析")
         return []
@@ -39,69 +56,93 @@ def parse_optimization_items():
     latest = reports[0]
     print(f"📄 讀取報告：{latest.name}")
     content = latest.read_text(encoding="utf-8", errors="ignore")
-
-    # 解析優化項目（從報告中提取行動車道項目）
-    items = []
     lines = content.split("\n")
-    in_action = False
+
+    items = []
+    current_section = "一般"
     current_item = {}
 
-    for line in lines:
-        # 偵測「優化項目」區段
-        if "優化項目" in line or "行動車道" in line or "accelerat" in line.lower() or "保養" in line:
-            in_action = True
-            continue
-        if in_action and ("明天觀察" in line or "風險" in line or "資料狀態" in line):
-            in_action = False
-            continue
+    # 區段關鍵字：進到這些區段就開始擷取
+    parse_sections = [
+        "優化項目", "行動車道", "保養車道", "加速線路",
+        "出口", "轉換", "風險", "隱憂", "異常",
+        "需要確認", "觀察", "急修"
+    ]
 
-        if in_action and line.strip().startswith(("- ", "•", "*")):
-            # 新項目
+    is_parsing = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        # 偵測區段標題
+        detected = False
+        for marker in parse_sections:
+            if marker in line:
+                current_section = detect_section(line) or "一般"
+                # 特殊開關：出口/轉換/風險/隱憂/異常 也要進 parse
+                if any(m in line for m in ["保養", "加速", "出口", "轉換", "風險", "隱憂", "異常", "優化項目", "行動車道", "急修", "需要確認", "觀察"]):
+                    is_parsing = True
+                detected = True
+                break
+
+        if detected:
+            # 關閉上一個 item
             if current_item.get("title"):
                 items.append(current_item)
-            current_item = {
-                "title": line.strip().lstrip("- •*").strip()[:80],
-                "description": line.strip().lstrip("- •*").strip(),
-                "category": "優化",
-                "urgency": "中"
-            }
-        elif in_action and current_item and line.strip():
-            current_item["description"] += "\n" + line.strip()
+                current_item = {}
+            continue
 
+        # 遇到「資料狀態」「一週趨勢」等大標，結束 parse
+        if is_parsing and re.match(r"^[一二三四五六七]、", line):
+            if current_item.get("title"):
+                items.append(current_item)
+                current_item = {}
+            if not any(m in line for m in parse_sections):
+                is_parsing = False
+            continue
+
+        if not is_parsing:
+            continue
+
+        # 擷取條列項目
+        if stripped.startswith(("- ", "•", "*")) or re.match(r"^\d+[.、]", stripped):
+            if current_item.get("title"):
+                items.append(current_item)
+
+            title_text = re.sub(r"^[-•*\d.、\s]+", "", stripped).strip()
+            urgency = "高" if any(c in stripped for c in ["❌", "⚠️", "急", "🆘"]) else \
+                     "中" if "需" in stripped or "應" in stripped else "低"
+
+            current_item = {
+                "title": title_text[:100],
+                "description": stripped,
+                "category": current_section,
+                "urgency": urgency
+            }
+        elif current_item and stripped:
+            current_item["description"] += "\n" + stripped
+
+    # 最後一個 item
     if current_item.get("title"):
         items.append(current_item)
 
-    # 如果沒解析到，建立範例項目
-    if not items:
-        # 從全文找 actionable 內容
-        for keyword in ["SEOPress", "metadata", "CTR", "曝光", "排名", "關鍵字", "blog", "文章"]:
-            for i, line in enumerate(lines):
-                if keyword.lower() in line.lower() and any(c in line for c in ["❌", "⚠️", "需", "應", "建議", "缺失"]):
-                    items.append({
-                        "title": line.strip()[:80],
-                        "description": "\n".join(lines[max(0,i-1):min(len(lines),i+3)]).strip(),
-                        "category": "自動偵測",
-                        "urgency": "高" if "❌" in line else "中"
-                    })
-                    break
-
     # 去重
     seen = set()
-    unique_items = []
+    unique = []
     for item in items:
         key = item["title"][:40]
         if key not in seen:
             seen.add(key)
-            unique_items.append(item)
+            unique.append(item)
 
-    print(f"📋 解析到 {len(unique_items)} 個優化項目")
-    return unique_items
+    print(f"📋 解析到 {len(unique)} 個優化項目（含隱憂/保養/轉換/確認）")
+    for item in unique:
+        print(f"  [{item['category']}] {item['urgency']} {item['title'][:60]}")
+    return unique
 
 
-# ─── 2. 開 GitHub Issue ───
 def create_github_issue(item):
-    """為每個優化項目開 GitHub Issue"""
-    title = f"[優化] {item['title'][:100]}"
+    title = f"[{item.get('category','一般')}] {item['title'][:90]}"
     body = f"""## 📋 優化項目
 
 **類別：** {item.get('category', '一般')}
@@ -132,33 +173,31 @@ def create_github_issue(item):
         "--title", title,
         "--body", body,
         "--label", f"urgency:{item.get('urgency','中')}",
+        "--label", f"category:{item.get('category','一般')}",
         "--label", "optimization"
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     if result.returncode == 0:
-        issue_url = result.stdout.strip()
-        issue_num = issue_url.split("/")[-1]
-        print(f"  ✅ Issue #{issue_num} 已建立")
-        return issue_num, issue_url
+        url = result.stdout.strip()
+        num = url.split("/")[-1]
+        print(f"  ✅ Issue #{num} 已建立")
+        return num, url
     else:
         print(f"  ❌ 建立失敗：{result.stderr.strip()}")
         return None, None
 
 
-# ─── 3. 主 Loop ───
 def main():
     print("=" * 60)
     print(f"🏭 蓋斯克網站優化 Loop — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print("=" * 60)
 
-    # Step 1: 解析報告
     items = parse_optimization_items()
     if not items:
         print("📭 今日無優化項目，結束")
         return
 
-    # Step 2: 開 Issues
-    print("\n📋 開 GitHub Issues…")
+    print(f"\n📋 開 GitHub Issues…")
     issues = []
     for item in items:
         num, url = create_github_issue(item)
@@ -168,7 +207,6 @@ def main():
     print(f"\n✅ 共開 {len(issues)} 個 Issue")
     print(f"🔗 https://github.com/gaskhuang/zonetech-website-optimizer/issues")
 
-    # Step 3: 輸出 Issue 清單（供後續 worker loop 使用）
     output = {
         "date": datetime.now().strftime("%Y-%m-%d"),
         "issues": [{"number": i["num"], "title": i["item"]["title"], "url": i["url"]} for i in issues]
@@ -178,7 +216,7 @@ def main():
     print(f"\n📝 Issue 清單已存：{output_path}")
 
     print("\n" + "=" * 60)
-    print("🔧 下一步：Worker 開始修復（由 worker_picky_loop.py 執行）")
+    print("🔧 下一步：Worker 開始修復（由 worker_picky_advisor_loop.py 執行）")
     print("=" * 60)
 
 
