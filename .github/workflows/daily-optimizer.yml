@@ -36,6 +36,9 @@ jobs:
 
       - name: 🚀 Step 3 — 上線
         if: success()
+        env:
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
         run: python scripts/deploy.py 2>&1 | tee /tmp/opt_step3.log || echo "No deploy needed"
 
       - name: 📋 彙總報告
