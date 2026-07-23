@@ -72,23 +72,39 @@ DEPLOY_ACTIONS = {
 
 
 def find_wp_post(issue_title):
-    """從 Issue 標題找對應的 WP post"""
+    """從 Issue 標題找對應的 WP post — 用關鍵字搜尋最新 100 篇"""
     import re
-    # 抓常見 slug 模式：英文+數字+連字符組合（至少 5 字元）
-    slugs = re.findall(r'[a-z][a-z0-9-]{4,}[a-z0-9]', issue_title.lower())
-    for slug in slugs:
-        result = wp_get(f"posts?slug={slug}&_fields=id,slug")
-        if isinstance(result, list) and result:
-            return result[0]["id"]
-    # fallback: 用 slug 單字比對最新 30 篇
-    result = wp_get("posts?per_page=30&_fields=id,title,slug")
-    if isinstance(result, list):
-        keywords = [w.lower() for w in re.findall(r'[a-z0-9-]{4,}', issue_title.lower())]
-        for post in result:
-            title = post.get("title", {}).get("rendered", "").lower()
-            slug = post.get("slug", "").lower()
-            if any(kw in title for kw in keywords) or any(kw == slug for kw in keywords):
-                return post["id"]
+    # 抓所有英文單字（去掉太短的）
+    words = [w.lower() for w in re.findall(r'[a-zA-Z][a-zA-Z0-9-]{2,}', issue_title)]
+    # 過濾：去掉 stop words + 保留長度 ≥ 4 的
+    stop_words = {'the','and','for','with','that','this','from','seopress','metadata','cta','急修','優化','加入','補','擴充'}
+    keywords = [w for w in words if w not in stop_words and len(w) >= 4]
+    
+    # 搜尋最新 50 篇 WP 文章
+    result = wp_get("posts?per_page=50&_fields=id,title,slug")
+    if not isinstance(result, list):
+        return None
+    
+    best_match = None
+    best_score = 0
+    for post in result:
+        title = post.get("title", {}).get("rendered", "").lower()
+        slug = post.get("slug", "").lower()
+        # 分數：slug 精確匹配 → 100，slug 包含關鍵字 → 每字 10 分
+        score = 0
+        for kw in keywords:
+            if kw == slug:
+                score += 100
+            elif kw in slug:
+                score += 50
+            elif kw in title:
+                score += 10
+        if score > best_score:
+            best_score = score
+            best_match = post
+    
+    if best_match and best_score >= 10:
+        return best_match["id"]
     return None
 
 
