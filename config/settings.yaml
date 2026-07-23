@@ -9,7 +9,7 @@ cron:
 workers:
   - name: "deepseek-v4-pro"
     model: "deepseek/deepseek-v4-pro"
-    provider: "gmi"
+    provider: "deepseek"
   - name: "chatgpt-5.6"
     model: "openai/chatgpt-5.6"
     provider: "codex"
