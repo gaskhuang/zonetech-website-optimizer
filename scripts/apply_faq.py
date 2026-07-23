@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""FAQ Cleanup — 完全清除舊內容，寫入乾淨 details/summary"""
-import json, urllib.request, base64, re
+"""FAQ v4 — 隱藏雙箭頭：list-style-type:none 關掉原生 summary marker"""
+import json, urllib.request, base64
 
 WP_URL = "https://zonetech.tw/wp-json/wp/v2/blogs"
 auth = base64.b64encode("gask:y3nk70VXgsh3Xe0qhd83JvQy".encode()).decode()
@@ -21,23 +21,23 @@ def wp_post(endpoint, data):
 FAQ = """<h2 style="font-size:24px;font-weight:700;color:#1a1a2e;margin-top:48px;border-left:4px solid #0056b3;padding-left:16px;">常見問題 Q&A</h2>
 <div style="max-width:800px;margin:2em auto;">
 <details style="border-bottom:1px solid #ddd;padding:6px 0;">
-<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;">&#9660; Q1：我已經安裝了 UniFi AP，為什麼 Wi-Fi 網速還是很慢？</summary>
+<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;list-style-type:none;">&#9660; Q1：我已經安裝了 UniFi AP，為什麼 Wi-Fi 網速還是很慢？</summary>
 <p style="padding:6px 24px;color:#444;line-height:1.8;margin:0;">網速慢通常不是 UniFi 設備本身的問題，而是設定未經最佳化。最常見的原因有三：一、AP 物理位置不佳，被障礙物遮擋；二、頻道設定錯誤，尤其 2.4GHz 頻段未選用互不干擾的 1、6、11 頻道；三、傳輸功率設為「高」，在多 AP 環境下造成「黏性客戶端」問題。建議從這三點著手檢查，通常能解決 80% 的效能問題。</p>
 </details>
 <details style="border-bottom:1px solid #ddd;padding:6px 0;">
-<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;">&#9660; Q2：UniFi 的 2.4GHz 和 5GHz 頻道寬度到底該怎麼設定？</summary>
+<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;list-style-type:none;">&#9660; Q2：UniFi 的 2.4GHz 和 5GHz 頻道寬度到底該怎麼設定？</summary>
 <p style="padding:6px 24px;color:#444;line-height:1.8;margin:0;">2.4GHz 由於非常擁擠，應「永遠」設定為 20MHz。5GHz 若環境干擾低可設為 80MHz 追求極速；但在 AP 密集的企業辦公室，為了提升穩定性，將寬度縮減為 40MHz 是更專業的選擇。切忌在 2.4GHz 上使用 40MHz。</p>
 </details>
 <details style="border-bottom:1px solid #ddd;padding:6px 0;">
-<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;">&#9660; Q3：什麼是「黏性客戶端」問題？該如何解決？</summary>
+<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;list-style-type:none;">&#9660; Q3：什麼是「黏性客戶端」問題？該如何解決？</summary>
 <p style="padding:6px 24px;color:#444;line-height:1.8;margin:0;">「黏性客戶端」是指設備在辦公室移動時，即使旁邊有訊號更好的 AP，它仍然「黏」在原先連接的距離較遠的 AP 上不肯切換。解決方法：一、將所有 AP 的傳輸功率從「高」調降為「中」或「自動」；二、啟用「最低 RSSI」功能，設定 -75dBm 門檻，設備訊號低於此值時 AP 會主動將其踢除，迫使其重新連接到訊號更強的 AP。</p>
 </details>
 <details style="border-bottom:1px solid #ddd;padding:6px 0;">
-<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;">&#9660; Q4：UniFi 的 Channel AI 真的有用嗎？什麼時候該用？</summary>
+<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;list-style-type:none;">&#9660; Q4：UniFi 的 Channel AI 真的有用嗎？什麼時候該用？</summary>
 <p style="padding:6px 24px;color:#444;line-height:1.8;margin:0;">Channel AI 對中小型辦公室非常有用，能每日凌晨自動掃描周遭環境，切換到干擾最少的頻道。但在 AP 密集的高密度環境，專業的手動頻道規劃通常能達到比 AI 更好的整體效能。此外，2.4GHz 建議永遠手動鎖定在 1、6、11 頻道。</p>
 </details>
 <details style="border-bottom:1px solid #ddd;padding:6px 0;">
-<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;">&#9660; Q5：自己調整跟請專業廠商做的差別在哪？</summary>
+<summary style="cursor:pointer;font-size:16px;font-weight:600;color:#1a1a2e;padding:8px 0;list-style-type:none;">&#9660; Q5：自己調整跟請專業廠商做的差別在哪？</summary>
 <p style="padding:6px 24px;color:#444;line-height:1.8;margin:0;">自行調整可解決基本問題，但專業廠商的價值在於「系統性診斷」與「客製化規劃」。我們會攜帶專業頻譜分析儀器到現場進行場勘，用數據找出實體干擾源和訊號死角，重新規劃 AP 最佳物理位置，並根據您的業務需求進行頻道、功率、VLAN 精細規劃。</p>
 </details>
 </div>"""
@@ -46,21 +46,18 @@ for post_id in [14886, 14695]:
     post = wp_get(f"{post_id}?_fields=id,content")
     content = post["content"]["rendered"]
     
-    # 砍掉常見問題之後的所有內容
-    faq_start = content.lower().find('<h2')
-    faq_found = False
-    lines = content.split('\n')
-    clean_lines = []
-    for line in lines:
-        if '常見問題' in line and ('h2' in line or 'h3' in line):
-            faq_found = True
-        if not faq_found:
-            clean_lines.append(line)
+    # 只換 FAQ 區塊
+    idx = content.rfind('常見問題 Q&amp;A')
+    if idx < 0:
+        idx = content.rfind('常見問題 Q&A')
+    if idx > 0:
+        base = content[:content.rfind('<h2', 0, idx)]
+    else:
+        print(f"  ⚠️ Post {post_id} — 找不到 FAQ 標題")
+        continue
     
-    base = '\n'.join(clean_lines).strip()
-    new = base + '\n\n' + FAQ
-    
+    new = base.strip() + '\n\n' + FAQ
     result = wp_post(f"{post_id}", {"content": new})
-    print(f"  {'✅' if result else '❌'} Post {post_id}")
+    print(f"  {'✅' if result else '❌'} Post {post_id} — 已修正雙箭頭")
 
 print("✅ 完成")
