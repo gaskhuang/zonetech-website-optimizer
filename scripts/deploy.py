@@ -21,7 +21,8 @@ def wp_auth_header():
     """回傳 Basic Auth header"""
     import base64
     token = base64.b64encode(f"{WP_USER}:{WP_PASS}".encode()).decode()
-    return {"Authorization": f"Basic {token}", "Content-Type": "application/json"}
+    return {"Authorization": f"Basic {token}", "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; ZoneTechOptimizer/1.0)"}
 
 
 def wp_get(endpoint):
