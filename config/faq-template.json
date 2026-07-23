@@ -1,0 +1,19 @@
+{
+  "faqs": [
+    {"q": "Q1：我的公司幾人以上適合 IT 委外？",
+     "a": "<p>我們服務過全台超過 3,000 家企業，簡單分類給您參考：</p><ul><li><strong>10-15 人以下：</strong>沒有專職 MIS 就適合委外</li><li><strong>30-60 人：</strong>需要同時管網路+資安的企業最划算</li><li><strong>60-100 人：</strong>可選擇「委外＋定期駐點」</li><li><strong>100 人以上：</strong>除非有內部系統開發需求，才考慮自己請人</li></ul><p>我們提供台北/新北免費到場評估，現場看完才能判斷適不適合。</p>"},
+    {"q": "Q2：什麼情況下不需要委外、自己處理就好？",
+     "a": "<p>如果您是 5 人以下微型團隊，且只使用 Google Workspace / Microsoft 365 這類雲端服務、沒有伺服器也沒有內網，大多數問題可透過原廠客服解決，這類客戶我們反而會先建議不用外包。</p><p>不過，一旦開始需要共用檔案、內網印表機、NAS 或防火牆，就建議重新評估了。</p>"},
+    {"q": "Q3：IT 委外一個月費用怎麼算？有沒有隱藏費用？",
+     "a": "<p>費用依裝置數量（電腦+伺服器+NAS）計價，月費制。一般中小企業落在 NT$8,000-20,000/月。</p><p>我們合約透明，沒有隱藏費用。硬體維修更換另計報價。</p>"}
+  ],
+  "elementor_settings": {
+    "widget_type": "toggle",
+    "container_class": "elementor-widget-toggle",
+    "item_class": "elementor-toggle-item",
+    "title_class": "elementor-tab-title",
+    "content_class": "elementor-tab-content",
+    "icon_open": "fas fa-chevron-up",
+    "icon_close": "fas fa-chevron-down"
+  }
+}
