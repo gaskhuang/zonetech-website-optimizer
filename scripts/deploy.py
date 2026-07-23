@@ -73,22 +73,21 @@ DEPLOY_ACTIONS = {
 
 def find_wp_post(issue_title):
     """從 Issue 標題找對應的 WP post"""
-    # 試 slug 搜尋
     import re
-    slugs = re.findall(r'[\w-]+(?=\.html|$)', issue_title)
+    # 抓常見 slug 模式：英文+數字+連字符組合（至少 5 字元）
+    slugs = re.findall(r'[a-z][a-z0-9-]{4,}[a-z0-9]', issue_title.lower())
     for slug in slugs:
-        if len(slug) > 5:
-            result = wp_get(f"posts?slug={slug}&_fields=id,slug")
-            if isinstance(result, list) and result:
-                return result[0]["id"]
-    # fallback: 最新 20 篇搜尋標題
-    result = wp_get("posts?per_page=20&_fields=id,title,slug")
+        result = wp_get(f"posts?slug={slug}&_fields=id,slug")
+        if isinstance(result, list) and result:
+            return result[0]["id"]
+    # fallback: 用 slug 單字比對最新 30 篇
+    result = wp_get("posts?per_page=30&_fields=id,title,slug")
     if isinstance(result, list):
+        keywords = [w.lower() for w in re.findall(r'[a-z0-9-]{4,}', issue_title.lower())]
         for post in result:
-            title = post.get("title", {}).get("rendered", "")
-            slug = post.get("slug", "")
-            if any(kw in title for kw in issue_title.split()) or \
-               any(kw in slug for kw in slugs):
+            title = post.get("title", {}).get("rendered", "").lower()
+            slug = post.get("slug", "").lower()
+            if any(kw in title for kw in keywords) or any(kw == slug for kw in keywords):
                 return post["id"]
     return None
 
